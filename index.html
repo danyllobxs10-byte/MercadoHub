@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MercadoHub</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c10;--bg1:#0d1219;--bg2:#111820;--border:#1c2d40;--text:#c4d8ec;--dim:#5a7a9a;--faint:#334455;--gold:#f0a500;--green:#22c55e;--red:#ef4444;--blue:#3b9eff;--teal:#14b8a6;--purple:#8b5cf6;--orange:#f97316}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh}
+.hdr{background:var(--bg1);border-bottom:1px solid var(--border);padding:14px 20px 0;position:sticky;top:0;z-index:99}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-m{width:30px;height:30px;border-radius:7px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;color:#000;font-size:15px}
+.logo-n{font-size:17px;font-weight:800;color:#e8f4ff}.logo-n span{color:var(--gold)}
+.meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);margin-top:2px}
+.btn{background:var(--bg2);border:1px solid var(--border);color:var(--dim);padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Syne',sans-serif}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.tabs{display:flex;overflow-x:auto}.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 15px 10px;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;user-select:none}
+.tab:hover{color:var(--text)}.tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.tab.fav.on{color:#ffcc44;border-bottom-color:#ffcc44}
+.fav-count{background:rgba(240,165,0,.2);color:#ffcc44;border-radius:10px;font-size:10px;padding:1px 6px;font-family:'IBM Plex Mono',monospace;font-weight:600;margin-left:4px}
+.page{padding:18px 20px}
+.lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+@media(max-width:800px){.cards{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:9px;padding:13px 15px}
+.card-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--faint);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px}
+.card-val{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#e8f4ff}
+.card-chg{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;margin-top:4px}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.movers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+@media(max-width:650px){.movers{grid-template-columns:1fr}}
+.mover-box{background:var(--bg1);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.mover-title{padding:11px 15px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-g{background:var(--green);box-shadow:0 0 5px var(--green)}
+.dot-r{background:var(--red);box-shadow:0 0 5px var(--red)}
+.mrow{display:flex;align-items:center;justify-content:space-between;padding:10px 15px;border-bottom:1px solid rgba(28,45,64,.35);cursor:pointer;transition:background .1s}
+.mrow:last-child{border-bottom:none}
+.mrow:hover{background:var(--bg2)}
+.mrow-left{display:flex;flex-direction:column;gap:2px}
+.tn{font-size:13px;font-weight:700;color:#e8f4ff;font-family:'IBM Plex Mono',monospace}
+.ts{font-size:10px;color:var(--faint)}
+.mrow-right{display:flex;align-items:center;gap:10px}
+.mprice{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--dim)}
+.mchg{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;min-width:72px;text-align:right}
+.fav-btn{background:none;border:none;cursor:pointer;color:var(--faint);font-size:15px;padding:2px 5px;transition:color .15s}
+.fav-btn:hover,.fav-btn.on{color:#ffcc44}
+.tbl-wrap{background:var(--bg1);border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:16px}
+.tbl-head{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
+.bdg{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:2px 7px;border-radius:4px}
+.bdg-blue{background:rgba(59,158,255,.1);color:var(--blue);border:1px solid rgba(59,158,255,.2)}
+.bdg-teal{background:rgba(20,184,166,.1);color:var(--teal);border:1px solid rgba(20,184,166,.2)}
+.bdg-purple{background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.2)}
+.bdg-gold{background:rgba(240,165,0,.1);color:var(--gold);border:1px solid rgba(240,165,0,.2)}
+table{width:100%;border-collapse:collapse}
+th{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);padding:8px 14px;text-align:right;border-bottom:1px solid var(--border);font-weight:500;white-space:nowrap}
+th:first-child{text-align:left}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover td{background:var(--bg2)}
+tbody tr.sel td{background:rgba(240,165,0,.04)}
+td{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:10px 14px;text-align:right;border-bottom:1px solid rgba(28,45,64,.4);color:var(--dim)}
+td:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+.chg{font-weight:700;font-size:13px}
+/* EXPLORE */
+.search-bar{display:flex;gap:10px;margin-bottom:14px}
+.search-input{flex:1;background:var(--bg1);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:13px;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .15s}
+.search-input:focus{border-color:var(--gold)}
+.search-input::placeholder{color:var(--faint)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filter-btn{background:var(--bg1);border:1px solid var(--border);color:var(--dim);padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-btn:hover{border-color:var(--gold);color:var(--gold)}
+.filter-btn.on{background:rgba(240,165,0,.12);border-color:var(--gold);color:var(--gold)}
+.asset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.asset-card{background:var(--bg1);border:1px solid var(--border);border-radius:9px;padding:13px 15px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between}
+.asset-card:hover{border-color:#243550;background:var(--bg2)}
+.asset-card.sel{border-color:var(--gold);background:rgba(240,165,0,.04)}
+.ac-left{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ac-ticker{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#e8f4ff}
+.ac-name{font-size:10px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.ac-tags{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.ac-tag{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 6px;border-radius:3px;font-weight:600}
+.tag-blue{background:rgba(59,158,255,.1);color:var(--blue)}
+.tag-gold{background:rgba(240,165,0,.1);color:var(--gold)}
+.tag-green{background:rgba(34,197,94,.1);color:var(--green)}
+.tag-teal{background:rgba(20,184,166,.1);color:var(--teal)}
+.tag-purple{background:rgba(139,92,246,.1);color:var(--purple)}
+.tag-orange{background:rgba(249,115,22,.1);color:var(--orange)}
+.tag-dim{background:rgba(90,122,154,.1);color:var(--dim)}
+.ac-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;margin-left:10px}
+.ac-price{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#e8f4ff}
+.ac-chg{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700}
+.temp-bar{display:flex;align-items:center;gap:5px;margin-top:3px}
+.temp-dots{display:flex;gap:2px}
+.temp-dot{width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.temp-dot.lit-red{background:var(--red)}
+.temp-dot.lit-orange{background:var(--orange)}
+.temp-dot.lit-dim{background:var(--dim)}
+.temp-dot.lit-green{background:#86efac}
+.temp-dot.lit-bright{background:var(--green)}
+.temp-label{font-family:'IBM Plex Mono',monospace;font-size:9px}
+/* DETAIL */
+.det{background:var(--bg1);border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-top:16px;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.det-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.det-ticker{font-size:20px;font-weight:800;color:#f0f8ff;font-family:'IBM Plex Mono',monospace}
+.det-name{font-size:11px;color:var(--faint);margin-top:2px}
+.det-price{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:#f0f8ff}
+.det-body{padding:18px;display:flex;flex-direction:column;gap:20px}
+.sub{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.fund-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:600px){.fund-grid{grid-template-columns:repeat(2,1fr)}}
+.fund-card{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:10px 12px}
+.fund-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--faint);margin-bottom:5px;text-transform:uppercase;letter-spacing:1px}
+.fund-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#e8f4ff}
+.hist{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+@media(max-width:550px){.hist{grid-template-columns:repeat(2,1fr)}}
+.hcard{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:10px 11px}
+.hper{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--faint);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.hpri{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-bottom:3px}
+.hpct{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700}
+.dtbl{width:100%;border-collapse:collapse}
+.dtbl th{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--faint);text-align:right;padding:6px 11px;border-bottom:1px solid var(--border);font-weight:500}
+.dtbl th:first-child{text-align:left}
+.dtbl td{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--dim);text-align:right;padding:8px 11px;border-bottom:1px solid rgba(28,45,64,.35)}
+.dtbl td:first-child{text-align:left;color:var(--faint)}
+.dtbl tr:last-child td{border-bottom:none}
+.spin-wrap{display:flex;align-items:center;justify-content:center;padding:36px;flex-direction:column;gap:10px}
+.spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.spin-lbl{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint)}
+.err-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#ff8080;padding:13px 16px;border-radius:8px;font-size:12px;font-family:'IBM Plex Mono',monospace}
+.hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);text-align:center;padding:20px}
+.close-btn{background:none;border:1px solid var(--border);color:var(--faint);border-radius:5px;padding:3px 9px;cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.close-btn:hover{border-color:var(--red);color:var(--red)}
+.fav-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:50px 20px}
+.fav-ei{font-size:38px;opacity:.15}
+.fav-et{font-size:12px;color:var(--faint);text-align:center;font-family:'IBM Plex Mono',monospace}
+.no-results{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint);text-align:center;padding:40px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var h=React.createElement,useState=React.useState,useEffect=React.useEffect,useCallback=React.useCallback,useRef=React.useRef,useMemo=React.useMemo;
+var BASE="https://brapi.dev/api",TOKEN="fwNq64rZt3HteV6a2dHEvX";
+function q(u){return u+(u.indexOf("?")>=0?"&":"?")+"token="+TOKEN;}
+
+var CRYPTO_LIST="BTC,ETH,BNB,SOL,XRP,ADA,DOGE,AVAX,DOT,MATIC,LTC,LINK,UNI,ATOM";
+var COMMS_LIST="GC=F,CL=F,SI=F,NG=F,ZC=F,ZW=F,ZS=F,KC=F,CT=F,HG=F";
+var CNAMES={"GC=F":"Ouro","CL=F":"Petróleo WTI","SI=F":"Prata","NG=F":"Gás Natural","ZC=F":"Milho","ZW=F":"Trigo","ZS=F":"Soja","KC=F":"Café","CT=F":"Algodão","HG=F":"Cobre"};
+
+var ASSETS=[
+  // BLUE CHIPS
+  {t:"PETR4",n:"Petrobras PN",seg:"blue-chip",sector:"Energia"},
+  {t:"PETR3",n:"Petrobras ON",seg:"blue-chip",sector:"Energia"},
+  {t:"VALE3",n:"Vale ON",seg:"blue-chip",sector:"Mineração"},
+  {t:"ITUB4",n:"Itaú Unibanco PN",seg:"blue-chip",sector:"Financeiro"},
+  {t:"ITUB3",n:"Itaú Unibanco ON",seg:"blue-chip",sector:"Financeiro"},
+  {t:"BBDC4",n:"Bradesco PN",seg:"blue-chip",sector:"Financeiro"},
+  {t:"BBDC3",n:"Bradesco ON",seg:"blue-chip",sector:"Financeiro"},
+  {t:"ABEV3",n:"Ambev ON",seg:"blue-chip",sector:"Consumo"},
+  {t:"WEGE3",n:"WEG ON",seg:"blue-chip",sector:"Indústria"},
+  {t:"RENT3",n:"Localiza ON",seg:"blue-chip",sector:"Serviços"},
+  {t:"SUZB3",n:"Suzano ON",seg:"blue-chip",sector:"Papel e Celulose"},
+  {t:"BBAS3",n:"Banco do Brasil ON",seg:"blue-chip",sector:"Financeiro"},
+  {t:"RDOR3",n:"Rede D'Or ON",seg:"blue-chip",sector:"Saúde"},
+  {t:"HAPV3",n:"Hapvida ON",seg:"blue-chip",sector:"Saúde"},
+  {t:"ELET3",n:"Eletrobras ON",seg:"blue-chip",sector:"Energia"},
+  {t:"ELET6",n:"Eletrobras PNB",seg:"blue-chip",sector:"Energia"},
+  {t:"LREN3",n:"Lojas Renner ON",seg:"blue-chip",sector:"Varejo"},
+  {t:"JBSS3",n:"JBS ON",seg:"blue-chip",sector:"Alimentos"},
+  {t:"BRFS3",n:"BRF ON",seg:"blue-chip",sector:"Alimentos"},
+  {t:"UGPA3",n:"Ultrapar ON",seg:"blue-chip",sector:"Energia"},
+  {t:"CSAN3",n:"Cosan ON",seg:"blue-chip",sector:"Energia"},
+  {t:"BPAC11",n:"BTG Pactual UNT",seg:"blue-chip",sector:"Financeiro"},
+  {t:"SANB11",n:"Santander BR UNT",seg:"blue-chip",sector:"Financeiro"},
+  {t:"B3SA3",n:"B3 ON",seg:"blue-chip",sector:"Financeiro"},
+  {t:"ITSA4",n:"Itaúsa PN",seg:"blue-chip",sector:"Financeiro"},
+  {t:"ITSA3",n:"Itaúsa ON",seg:"blue-chip",sector:"Financeiro"},
+  {t:"KLBN11",n:"Klabin UNT",seg:"blue-chip",sector:"Papel e Celulose"},
+  {t:"GGBR4",n:"Gerdau PN",seg:"blue-chip",sector:"Siderurgia"},
+  {t:"CSNA3",n:"CSN ON",seg:"blue-chip",sector:"Siderurgia"},
+  {t:"USIM5",n:"Usiminas PNA",seg:"blue-chip",sector:"Siderurgia"},
+  // MID CAPS
+  {t:"CPLE6",n:"Copel PNB",seg:"mid-cap",sector:"Energia"},
+  {t:"CMIG4",n:"Cemig PN",seg:"mid-cap",sector:"Energia"},
+  {t:"EGIE3",n:"Engie Brasil ON",seg:"mid-cap",sector:"Energia"},
+  {t:"TAEE11",n:"Taesa UNT",seg:"mid-cap",sector:"Energia"},
+  {t:"TRPL4",n:"Transmissão Paulista PN",seg:"mid-cap",sector:"Energia"},
+  {t:"SBSP3",n:"Sabesp ON",seg:"mid-cap",sector:"Saneamento"},
+  {t:"CSMG3",n:"Copasa ON",seg:"mid-cap",sector:"Saneamento"},
+  {t:"RADL3",n:"Raia Drogasil ON",seg:"mid-cap",sector:"Saúde"},
+  {t:"FLRY3",n:"Fleury ON",seg:"mid-cap",sector:"Saúde"},
+  {t:"PRIO3",n:"PetroRio ON",seg:"mid-cap",sector:"Energia"},
+  {t:"RECV3",n:"PetroReconcavo ON",seg:"mid-cap",sector:"Energia"},
+  {t:"VBBR3",n:"Vibra Energia ON",seg:"mid-cap",sector:"Energia"},
+  {t:"EMBR3",n:"Embraer ON",seg:"mid-cap",sector:"Indústria"},
+  {t:"GOLL4",n:"Gol Linhas Aéreas PN",seg:"mid-cap",sector:"Transporte"},
+  {t:"AZUL4",n:"Azul PN",seg:"mid-cap",sector:"Transporte"},
+  {t:"CCRO3",n:"CCR ON",seg:"mid-cap",sector:"Infraestrutura"},
+  {t:"EQTL3",n:"Equatorial ON",seg:"mid-cap",sector:"Energia"},
+  {t:"TOTS3",n:"Totvs ON",seg:"mid-cap",sector:"Tecnologia"},
+  {t:"INTB3",n:"Intelbras ON",seg:"mid-cap",sector:"Tecnologia"},
+  {t:"BEEF3",n:"Minerva ON",seg:"mid-cap",sector:"Alimentos"},
+  {t:"MRFG3",n:"Marfrig ON",seg:"mid-cap",sector:"Alimentos"},
+  {t:"SLCE3",n:"SLC Agrícola ON",seg:"mid-cap",sector:"Agro"},
+  {t:"AGRO3",n:"BrasilAgro ON",seg:"mid-cap",sector:"Agro"},
+  {t:"TTEN3",n:"3tentos ON",seg:"mid-cap",sector:"Agro"},
+  {t:"RAIL3",n:"Rumo ON",seg:"mid-cap",sector:"Transporte"},
+  {t:"ECOR3",n:"EcoRodovias ON",seg:"mid-cap",sector:"Infraestrutura"},
+  {t:"MULT3",n:"Multiplan ON",seg:"mid-cap",sector:"Imobiliário"},
+  {t:"IGTI11",n:"Iguatemi UNT",seg:"mid-cap",sector:"Imobiliário"},
+  {t:"BRML3",n:"BR Malls ON",seg:"mid-cap",sector:"Imobiliário"},
+  {t:"CYRELA3",n:"Cyrela ON",seg:"mid-cap",sector:"Construção"},
+  {t:"MRVE3",n:"MRV ON",seg:"mid-cap",sector:"Construção"},
+  {t:"CYRE3",n:"Cyrela Comercial ON",seg:"mid-cap",sector:"Construção"},
+  {t:"EVEN3",n:"Even ON",seg:"mid-cap",sector:"Construção"},
+  {t:"DIRR3",n:"Direcional ON",seg:"mid-cap",sector:"Construção"},
+  {t:"CVCB3",n:"CVC Brasil ON",seg:"mid-cap",sector:"Turismo"},
+  {t:"COGN3",n:"Cogna ON",seg:"mid-cap",sector:"Educação"},
+  {t:"YDUQ3",n:"Yduqs ON",seg:"mid-cap",sector:"Educação"},
+  // SMALL CAPS
+  {t:"SMFT3",n:"Smart Fit ON",seg:"small-cap",sector:"Serviços"},
+  {t:"MOVI3",n:"Movida ON",seg:"small-cap",sector:"Serviços"},
+  {t:"PETZ3",n:"Petz ON",seg:"small-cap",sector:"Varejo"},
+  {t:"ARZZ3",n:"Arezzo ON",seg:"small-cap",sector:"Varejo"},
+  {t:"SOMA3",n:"Grupo Soma ON",seg:"small-cap",sector:"Varejo"},
+  {t:"LWSA3",n:"Locaweb ON",seg:"small-cap",sector:"Tecnologia"},
+  {t:"CASH3",n:"Méliuz ON",seg:"small-cap",sector:"Tecnologia"},
+  {t:"ORVR3",n:"Orizon ON",seg:"small-cap",sector:"Saneamento"},
+  {t:"AURE3",n:"Auren Energia ON",seg:"small-cap",sector:"Energia"},
+  {t:"CLSA3",n:"Celesc ON",seg:"small-cap",sector:"Energia"},
+  {t:"VULC3",n:"Vulcabras ON",seg:"small-cap",sector:"Varejo"},
+  {t:"VIVA3",n:"Vivara ON",seg:"small-cap",sector:"Varejo"},
+  {t:"LEVE3",n:"Mahle-Metal Leve ON",seg:"small-cap",sector:"Indústria"},
+  {t:"RAPT4",n:"Randon PN",seg:"small-cap",sector:"Indústria"},
+  {t:"FRAS3",n:"Fras-Le ON",seg:"small-cap",sector:"Indústria"},
+  {t:"ODPV3",n:"Odontoprev ON",seg:"small-cap",sector:"Saúde"},
+  {t:"GNDI3",n:"Intermédica ON",seg:"small-cap",sector:"Saúde"},
+  {t:"AALR3",n:"CSU Digital ON",seg:"small-cap",sector:"Tecnologia"},
+  {t:"DESK3",n:"Desktop ON",seg:"small-cap",sector:"Tecnologia"},
+  {t:"TRIS3",n:"Trisul ON",seg:"small-cap",sector:"Construção"},
+  {t:"PLPL3",n:"Plano&Plano ON",seg:"small-cap",sector:"Construção"},
+  // FIIS
+  {t:"MXRF11",n:"Maxi Renda FII",seg:"fii",sector:"Papel"},
+  {t:"HGLG11",n:"CSHG Logística FII",seg:"fii",sector:"Logística"},
+  {t:"KNRI11",n:"Kinea Renda Imobiliária",seg:"fii",sector:"Híbrido"},
+  {t:"VISC11",n:"Vinci Shopping Centers",seg:"fii",sector:"Shopping"},
+  {t:"XPML11",n:"XP Malls FII",seg:"fii",sector:"Shopping"},
+  {t:"HGRE11",n:"CSHG Real Estate FII",seg:"fii",sector:"Escritórios"},
+  {t:"BCFF11",n:"BTG Fundo de Fundos",seg:"fii",sector:"FOF"},
+  {t:"RBRF11",n:"RBR Alpha FOF",seg:"fii",sector:"FOF"},
+  {t:"BTLG11",n:"BTG Pactual Logística",seg:"fii",sector:"Logística"},
+  {t:"ALZR11",n:"Alianza Trust Renda Imob.",seg:"fii",sector:"Logística"},
+  {t:"BRCO11",n:"Bresco Logística FII",seg:"fii",sector:"Logística"},
+  {t:"CPTS11",n:"Capitânia Securities II",seg:"fii",sector:"Papel"},
+  {t:"KNCR11",n:"Kinea CR FII",seg:"fii",sector:"Papel"},
+  {t:"RECR11",n:"REC Recebíveis Imob.",seg:"fii",sector:"Papel"},
+  {t:"IRDM11",n:"Iridium Recebíveis Imob.",seg:"fii",sector:"Papel"},
+  {t:"RBRY11",n:"RBR Rendimento High Grade",seg:"fii",sector:"Papel"},
+  {t:"HSAF11",n:"Hedge AAA Fundo de FII",seg:"fii",sector:"FOF"},
+  {t:"BRCR11",n:"BC Fund FII",seg:"fii",sector:"Escritórios"},
+  {t:"PVBI11",n:"VBI Prime Properties FII",seg:"fii",sector:"Escritórios"},
+  {t:"XPPR11",n:"XP Properties FII",seg:"fii",sector:"Escritórios"},
+  {t:"HSML11",n:"HSI Malls FII",seg:"fii",sector:"Shopping"},
+  {t:"MALL11",n:"Malls Brasil Plural FII",seg:"fii",sector:"Shopping"},
+  {t:"HGBS11",n:"Hedge Brasil Shopping FII",seg:"fii",sector:"Shopping"},
+  {t:"TGAR11",n:"TG Ativo Real FII",seg:"fii",sector:"Híbrido"},
+  {t:"VGHF11",n:"Valora Hedge Fund FII",seg:"fii",sector:"Híbrido"},
+  // CRIPTOS
+  {t:"BTC",n:"Bitcoin",seg:"crypto",sector:"Cripto"},
+  {t:"ETH",n:"Ethereum",seg:"crypto",sector:"Cripto"},
+  {t:"BNB",n:"BNB",seg:"crypto",sector:"Cripto"},
+  {t:"SOL",n:"Solana",seg:"crypto",sector:"Cripto"},
+  {t:"XRP",n:"XRP",seg:"crypto",sector:"Cripto"},
+  {t:"ADA",n:"Cardano",seg:"crypto",sector:"Cripto"},
+  {t:"DOGE",n:"Dogecoin",seg:"crypto",sector:"Cripto"},
+  {t:"AVAX",n:"Avalanche",seg:"crypto",sector:"Cripto"},
+  {t:"DOT",n:"Polkadot",seg:"crypto",sector:"Cripto"},
+  {t:"MATIC",n:"Polygon",seg:"crypto",sector:"Cripto"},
+  {t:"LTC",n:"Litecoin",seg:"crypto",sector:"Cripto"},
+  {t:"LINK",n:"Chainlink",seg:"crypto",sector:"Cripto"},
+  {t:"UNI",n:"Uniswap",seg:"crypto",sector:"Cripto"},
+  {t:"ATOM",n:"Cosmos",seg:"crypto",sector:"Cripto"},
+  // COMMODITIES
+  {t:"GC=F",n:"Ouro",seg:"commodity",sector:"Metais"},
+  {t:"SI=F",n:"Prata",seg:"commodity",sector:"Metais"},
+  {t:"HG=F",n:"Cobre",seg:"commodity",sector:"Metais"},
+  {t:"CL=F",n:"Petróleo WTI",seg:"commodity",sector:"Energia"},
+  {t:"NG=F",n:"Gás Natural",seg:"commodity",sector:"Energia"},
+  {t:"ZC=F",n:"Milho",seg:"commodity",sector:"Agro"},
+  {t:"ZW=F",n:"Trigo",seg:"commodity",sector:"Agro"},
+  {t:"ZS=F",n:"Soja",seg:"commodity",sector:"Agro"},
+  {t:"KC=F",n:"Café",seg:"commodity",sector:"Agro"},
+  {t:"CT=F",n:"Algodão",seg:"commodity",sector:"Agro"},
+];
+
+var TABS=[
+  {id:"overview",label:"Visão Geral",icon:"⬡"},
+  {id:"explore",label:"Explorar",icon:"⌕"},
+  {id:"stocks",label:"Ações",icon:"◈"},
+  {id:"fiis",label:"FIIs",icon:"◉"},
+  {id:"crypto",label:"Criptos",icon:"◆"},
+  {id:"commodities",label:"Commodities",icon:"◇"},
+  {id:"favorites",label:"Favoritos",icon:"★"}
+];
+
+var SEG_FILTERS=[
+  {id:"all",label:"Todos"},
+  {id:"blue-chip",label:"Blue Chips"},
+  {id:"mid-cap",label:"Mid Caps"},
+  {id:"small-cap",label:"Small Caps"},
+  {id:"fii",label:"FIIs"},
+  {id:"crypto",label:"Criptos"},
+  {id:"commodity",label:"Commodities"}
+];
+
+var SECTOR_FILTERS=["Todos","Financeiro","Energia","Mineração","Saúde","Varejo","Tecnologia","Alimentos","Indústria","Agro","Siderurgia","Construção","Saneamento","Transporte","Infraestrutura","Imobiliário","Educação","Cripto","Metais","Papel e Celulose","Serviços"];
+
+function brl(v,d){d=d||2;if(v==null||isNaN(v))return"—";return Number(v).toLocaleString("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:d});}
+function pct(v){if(v==null||isNaN(v))return"—";return(v>=0?"+":"")+Number(v).toFixed(2)+"%";}
+function pctChg(f,t){return(f&&t&&f!==0)?(t-f)/f*100:null;}
+function fmtD(ts){return new Date(ts*1000).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});}
+function priceAt(hist,days){
+  if(!hist||!hist.length)return null;
+  var t=Date.now()/1000-days*86400;
+  return hist.reduce(function(b,e){return Math.abs(e.date-t)<Math.abs(b.date-t)?e:b;},hist[0]).close||null;
+}
+function fmtBig(v){
+  if(!v||isNaN(v))return"—";
+  if(v>=1e12)return"R$"+(v/1e12).toFixed(1)+"T";
+  if(v>=1e9)return"R$"+(v/1e9).toFixed(1)+"B";
+  if(v>=1e6)return"R$"+(v/1e6).toFixed(1)+"M";
+  return brl(v);
+}
+function segColor(seg){
+  return{"blue-chip":"tag-blue","mid-cap":"tag-gold","small-cap":"tag-orange","fii":"tag-teal","crypto":"tag-purple","commodity":"tag-green"}[seg]||"tag-dim";
+}
+function segLabel(seg){
+  return{"blue-chip":"Blue Chip","mid-cap":"Mid Cap","small-cap":"Small Cap","fii":"FII","crypto":"Cripto","commodity":"Commodity"}[seg]||seg;
+}
+function tempInfo(chg){
+  if(chg==null)return{label:"—",level:0};
+  if(chg<=-3)return{label:"Forte queda",level:-2};
+  if(chg<0)return{label:"Em queda",level:-1};
+  if(chg<1)return{label:"Estável",level:0};
+  if(chg<3)return{label:"Em alta",level:1};
+  return{label:"Forte alta",level:2};
+}
+
+function Spin(){return h('div',{className:'spin-wrap'},h('div',{className:'spin'}),h('span',{className:'spin-lbl'},'carregando...'));}
+
+function TempBar(p){
+  var info=tempInfo(p.chg),level=info.level;
+  var cfgs=[{c:level<=-2?'lit-red':''},{c:level<=-1?'lit-orange':''},{c:level===0?'lit-dim':''},{c:level>=1?'lit-green':''},{c:level>=2?'lit-bright':''}];
+  return h('div',{className:'temp-bar'},
+    h('div',{className:'temp-dots'},cfgs.map(function(c,i){return h('div',{key:i,className:'temp-dot '+(c.c||'')});})),
+    h('span',{className:'temp-label',style:{color:level<0?'var(--red)':level>0?'var(--green)':'var(--dim)'}},info.label)
+  );
+}
+
+// ── DETAIL ────────────────────────────────────────────────────
+function Detail(props){
+  var ticker=props.ticker,onClose=props.onClose,isCrypto=props.isCrypto;
+  var s=useState(null);var data=s[0];var setData=s[1];
+  var l=useState(true);var loading=l[0];var setLoading=l[1];
+  var e=useState(null);var err=e[0];var setErr=e[1];
+  var ref=useRef(null);
+
+  useEffect(function(){
+    if(!ticker)return;
+    setLoading(true);setData(null);setErr(null);
+    var url=isCrypto
+      ?q(BASE+'/v2/crypto?coin='+encodeURIComponent(ticker)+'&currency=BRL')
+      :q(BASE+'/quote/'+encodeURIComponent(ticker)+'?range=1y&interval=1d');
+    fetch(url)
+      .then(function(r){return r.json();})
+      .then(function(d){
+        console.log('[MercadoHub] resposta para '+ticker+':', JSON.stringify(d).slice(0,200));
+        var result;
+        if(isCrypto){
+          var coin=d.coins&&d.coins[0];
+          if(coin)result={symbol:coin.coin,shortName:coin.coinName,regularMarketPrice:coin.regularMarketPrice,regularMarketChangePercent:coin.regularMarketChangePercent,regularMarketVolume:coin.regularMarketVolume,marketCap:coin.marketCap,historicalDataPrice:[]};
+        }else{
+          result=d.results&&d.results[0]?d.results[0]:null;
+        }
+        if(!result){setErr("Ticker não encontrado: "+ticker);}
+        else if(!result.regularMarketPrice&&!result.regularMarketPreviousClose&&!result.symbol){setErr("Dados indisponíveis para "+ticker+".");}
+        else{setData(result);}
+      })
+      .catch(function(ex){console.error('[MercadoHub] erro para '+ticker+':',ex);setErr("Erro ao carregar "+ticker+": "+ex.message);})
+      .finally(function(){setLoading(false);});
+  },[ticker,isCrypto]);
+
+  useEffect(function(){setTimeout(function(){if(ref.current)ref.current.scrollIntoView({behavior:'smooth',block:'start'});},80);},[ticker]);
+
+  if(loading)return h('div',{className:'det',ref:ref},h(Spin));
+  if(err)return h('div',{className:'det',ref:ref},
+    h('div',{style:{padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}},
+      h('div',{className:'err-box',style:{flex:1}},err),
+      onClose&&h('button',{className:'close-btn',style:{flexShrink:0},onClick:onClose},'✕ fechar')
+    )
+  );
+  if(!data)return null;
+
+  var hist=data.historicalDataPrice||[];
+  var cur=data.regularMarketPrice;
+  var last5=hist.slice(-5);
+  var chgPct=data.regularMarketChangePercent||0;
+  var isPos=chgPct>=0;
+  var periods=[{l:'15d',d:15},{l:'30d',d:30},{l:'3m',d:90},{l:'6m',d:180},{l:'1a',d:365}];
+  var funds=[
+    {l:'P/L',v:data.priceEarnings?Number(data.priceEarnings).toFixed(2):'—'},
+    {l:'P/VP',v:data.priceToBook?Number(data.priceToBook).toFixed(2):'—'},
+    {l:'DY',v:data.dividendYield?Number(data.dividendYield).toFixed(2)+'%':'—'},
+    {l:'Mkt Cap',v:data.marketCap?fmtBig(data.marketCap):'—'},
+    {l:'Volume',v:data.regularMarketVolume?(data.regularMarketVolume/1e6).toFixed(1)+'M':'—'},
+    {l:'Abertura',v:brl(data.regularMarketOpen)},
+    {l:'Mín dia',v:brl(data.regularMarketDayLow)},
+    {l:'Máx dia',v:brl(data.regularMarketDayHigh)},
+  ];
+
+  return h('div',{className:'det',ref:ref},
+    h('div',{className:'det-head'},
+      h('div',null,
+        h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+          h('div',{className:'det-ticker'},data.symbol),
+          onClose&&h('button',{className:'close-btn',onClick:onClose},'✕ fechar')
+        ),
+        h('div',{className:'det-name'},data.shortName||data.longName||'')
+      ),
+      h('div',{style:{display:'flex',alignItems:'center',gap:10}},
+        h('div',{className:'det-price'},brl(cur)),
+        h('div',{style:{fontFamily:"'IBM Plex Mono',monospace",fontSize:12,fontWeight:600,padding:'4px 9px',borderRadius:5,
+          background:isPos?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)',
+          color:isPos?'var(--green)':'var(--red)',
+          border:'1px solid '+(isPos?'rgba(34,197,94,.25)':'rgba(239,68,68,.25)')}},
+          (isPos?'▲':'▼')+' '+Math.abs(chgPct).toFixed(2)+'%'
+        )
+      )
+    ),
+    h('div',{className:'det-body'},
+      h('div',null,
+        h('div',{className:'sub'},'Dados do ativo'),
+        h('div',{className:'fund-grid'},funds.map(function(f){
+          return h('div',{className:'fund-card',key:f.l},h('div',{className:'fund-lbl'},f.l),h('div',{className:'fund-val'},f.v));
+        }))
+      ),
+      last5.length>0&&h('div',null,
+        h('div',{className:'sub'},'Fechamento — últimos 5 dias'),
+        h('table',{className:'dtbl'},
+          h('thead',null,h('tr',null,h('th',null,'Data'),h('th',null,'Abertura'),h('th',null,'Mín'),h('th',null,'Máx'),h('th',null,'Fechamento'),h('th',null,'Var.'))),
+          h('tbody',null,last5.map(function(d,i){
+            var prev=last5[i-1];var v=prev?pctChg(prev.close,d.close):null;
+            return h('tr',{key:d.date},
+              h('td',null,fmtD(d.date)),h('td',null,brl(d.open)),
+              h('td',{style:{color:'var(--red)'}},brl(d.low)),
+              h('td',{style:{color:'var(--green)'}},brl(d.high)),
+              h('td',{style:{color:'#e8f4ff',fontWeight:600}},brl(d.close)),
+              h('td',{style:{color:v==null?'var(--faint)':v>=0?'var(--green)':'var(--red)',fontWeight:600}},v==null?'—':pct(v))
+            );
+          }))
+        )
+      ),
+      hist.length>0&&h('div',null,
+        h('div',{className:'sub'},'Preço histórico vs. hoje'),
+        h('div',{className:'hist'},periods.map(function(p){
+          var past=priceAt(hist,p.d);var ch=pctChg(past,cur);
+          return h('div',{className:'hcard',key:p.l},
+            h('div',{className:'hper'},p.l+' atrás'),
+            h('div',{className:'hpri'},brl(past)),
+            h('div',{className:'hpct',style:{color:ch==null?'var(--faint)':ch>=0?'var(--green)':'var(--red)'}},ch==null?'—':pct(ch))
+          );
+        }))
+      )
+    )
+  );
+}
+
+// ── MKT TABLE ────────────────────────────────────────────────
+function MktTable(props){
+  var title=props.title,badge=props.badge,data=props.data,loading=props.loading,error=props.error;
+  var favSet=props.favSet,onFav=props.onFav,cat=props.cat,cols=props.cols,selTicker=props.selTicker,onSel=props.onSel,isCrypto=props.isCrypto;
+  if(loading)return h('div',{className:'tbl-wrap'},h(Spin));
+  if(error)return h('div',{className:'err-box'},error);
+  return h('div',{className:'tbl-wrap'},
+    h('div',{className:'tbl-head'},title,h('span',{className:'bdg '+badge},(data&&data.length||0)+' ativos')),
+    !data||!data.length?h('div',{className:'hint'},'Nenhum dado disponível'):
+    h('table',null,
+      h('thead',null,h('tr',null,
+        h('th',{style:{textAlign:'left'}},'Ativo'),
+        cols.map(function(c){return h('th',{key:c.key},c.label);}),
+        h('th',null,'Var. Hoje'),h('th',{style:{width:36}},null)
+      )),
+      h('tbody',null,data.map(function(row){
+        var key=row.stock||row.coin||row.ticker;
+        var isActive=selTicker===key;
+        var isFav=favSet&&favSet.has(cat+':'+key);
+        var chg=row.change!=null?row.change:row.regularMarketChangePercent;
+        var isPos=(chg||0)>=0;
+        return h('tr',{key:key,className:isActive?'sel':'',onClick:function(){onSel(key);}},
+          h('td',null,h('div',null,h('div',{className:'tn'},key),h('div',{className:'ts'},row.name||row.longName||row.shortName||''))),
+          cols.map(function(c){return h('td',{key:c.key,style:c.style||{}},c.render?c.render(row):row[c.key]||'—');}),
+          h('td',{className:'chg '+(isPos?'pos':'neg')},(isPos?'▲':'▼')+' '+Math.abs(chg||0).toFixed(2)+'%'),
+          h('td',{onClick:function(e){e.stopPropagation();onFav(cat+':'+key,row);}},h('button',{className:'fav-btn '+(isFav?'on':'')},'★'))
+        );
+      }))
+    )
+  );
+}
+
+// ── EXPLORE TAB ──────────────────────────────────────────────
+function ExploreTab(props){
+  var favSet=props.favSet,onFav=props.onFav;
+  var s1=useState('');var query=s1[0];var setQuery=s1[1];
+  var s2=useState('all');var segF=s2[0];var setSegF=s2[1];
+  var s3=useState('Todos');var secF=s3[0];var setSecF=s3[1];
+  var s4=useState(null);var selTicker=s4[0];var setSelTicker=s4[1];
+  var s5=useState({});var prices=s5[0];var setPrices=s5[1];
+  var s6=useState(true);var loadingP=s6[0];var setLoadingP=s6[1];
+
+  useEffect(function(){
+    setLoadingP(true);
+    var stockTickers=ASSETS.filter(function(a){return a.seg!=='crypto'&&a.seg!=='commodity';}).map(function(a){return a.t;});
+    var batches=[];
+    for(var i=0;i<stockTickers.length;i+=15){batches.push(stockTickers.slice(i,i+15));}
+    var all={};
+    Promise.all(batches.map(function(batch){
+      return fetch(q(BASE+'/quote/'+batch.join(','))).then(function(r){return r.json();})
+        .then(function(d){(d.results||[]).forEach(function(r){if(r.symbol&&r.regularMarketPrice){all[r.symbol]={price:r.regularMarketPrice,change:r.regularMarketChangePercent};}});})
+        .catch(function(){});
+    }))
+    .then(function(){return fetch(q(BASE+'/v2/crypto?coin='+CRYPTO_LIST+'&currency=BRL')).then(function(r){return r.json();}).then(function(d){(d.coins||[]).forEach(function(c){all[c.coin]={price:c.regularMarketPrice,change:c.regularMarketChangePercent};});}).catch(function(){});})
+    .then(function(){return fetch(q(BASE+'/quote/'+COMMS_LIST+'?currency=BRL')).then(function(r){return r.json();}).then(function(d){(d.results||[]).forEach(function(r){all[r.symbol]={price:r.regularMarketPrice,change:r.regularMarketChangePercent};});}).catch(function(){});})
+    .then(function(){setPrices(all);setLoadingP(false);});
+  },[]);
+
+  var filtered=useMemo(function(){
+    var q2=query.toUpperCase();
+    return ASSETS.filter(function(a){
+      var mQ=!query||a.t.indexOf(q2)>=0||a.n.toUpperCase().indexOf(q2)>=0;
+      var mS=segF==='all'||a.seg===segF;
+      var mSec=secF==='Todos'||a.sector===secF;
+      return mQ&&mS&&mSec;
+    });
+  },[query,segF,secF]);
+
+  var showSectors=segF==='all'||segF==='blue-chip'||segF==='mid-cap'||segF==='small-cap'||segF==='fii';
+  var selAsset=ASSETS.find(function(a){return a.t===selTicker;});
+
+  return h('div',null,
+    h('div',{className:'search-bar'},
+      h('input',{className:'search-input',placeholder:'Buscar por ticker ou nome — ex: PETR4, Petrobras, BTC...',value:query,onChange:function(e){setQuery(e.target.value);}})
+    ),
+    h('div',{className:'filters'},SEG_FILTERS.map(function(f){
+      return h('button',{key:f.id,className:'filter-btn '+(segF===f.id?'on':''),onClick:function(){setSegF(f.id);setSecF('Todos');}},f.label);
+    })),
+    showSectors&&h('div',{className:'filters'},['Todos','Financeiro','Energia','Saúde','Varejo','Tecnologia','Alimentos','Indústria','Agro','Siderurgia','Construção','Saneamento','Transporte','Imobiliário','Educação'].map(function(s){
+      return h('button',{key:s,className:'filter-btn '+(secF===s?'on':''),onClick:function(){setSecF(s);}},s);
+    })),
+    h('div',{className:'lbl',style:{marginTop:4}},filtered.length+' ativos'+(loadingP?' — carregando preços...':'')),
+    h('div',{className:'asset-grid'},filtered.map(function(asset){
+      var p=prices[asset.t]||{};
+      var isSel=selTicker===asset.t;
+      var isFav=favSet&&favSet.has(asset.seg+':'+asset.t);
+      var chg=p.change;
+      var isPos=(chg||0)>=0;
+      return h('div',{key:asset.t,className:'asset-card '+(isSel?'sel':''),onClick:function(){setSelTicker(isSel?null:asset.t);}},
+        h('div',{className:'ac-left'},
+          h('div',{className:'ac-ticker'},asset.t),
+          h('div',{className:'ac-name'},asset.n),
+          h('div',{className:'ac-tags'},
+            h('span',{className:'ac-tag '+segColor(asset.seg)},segLabel(asset.seg)),
+            h('span',{className:'ac-tag tag-dim'},asset.sector)
+          ),
+          chg!=null&&h(TempBar,{chg:chg})
+        ),
+        h('div',{className:'ac-right'},
+          h('div',{className:'ac-price'},p.price?brl(p.price):'—'),
+          chg!=null&&h('div',{className:'ac-chg '+(isPos?'pos':'neg')},(isPos?'▲':'▼')+' '+Math.abs(chg).toFixed(2)+'%'),
+          h('button',{className:'fav-btn '+(isFav?'on':''),onClick:function(e){e.stopPropagation();onFav(asset.seg+':'+asset.t,{stock:asset.t,name:asset.n,close:p.price,change:chg});}}, '★')
+        )
+      );
+    })),
+    filtered.length===0&&h('div',{className:'no-results'},'Nenhum ativo encontrado.'),
+    selTicker&&h(Detail,{key:selTicker,ticker:selTicker,isCrypto:selAsset&&selAsset.seg==='crypto',onClose:function(){setSelTicker(null);}})
+  );
+}
+
+// ── APP ──────────────────────────────────────────────────────
+function App(){
+  var t1=useState('overview');var tab=t1[0];var setTab=t1[1];
+  var t2=useState({data:null,loading:true,error:null});var stocks=t2[0];var setStocks=t2[1];
+  var t3=useState({data:null,loading:true,error:null});var fiis=t3[0];var setFiis=t3[1];
+  var t4=useState({data:null,loading:true,error:null});var crypto=t4[0];var setCrypto=t4[1];
+  var t5=useState({data:null,loading:true,error:null});var comms=t5[0];var setComms=t5[1];
+  var t6=useState(function(){
+    try{var s=localStorage.getItem('mhub:fav');return s?new Map(Object.entries(JSON.parse(s))):new Map();}catch(e){return new Map();}
+  });var favorites=t6[0];var setFavorites=t6[1];
+  var t7=useState(null);var selTicker=t7[0];var setSelTicker=t7[1];
+  var t8=useState(null);var selCat=t8[0];var setSelCat=t8[1];
+  var t9=useState(null);var lastUpdate=t9[0];var setLastUpdate=t9[1];
+  var t10=useState(false);var spinning=t10[0];var setSpinning=t10[1];
+
+  useEffect(function(){
+    try{localStorage.setItem('mhub:fav',JSON.stringify(Object.fromEntries(favorites)));}catch(e){}
+  },[favorites]);
+
+  function fetchStocks(){
+    return Promise.all([
+      fetch(q(BASE+'/quote/list?sortBy=change&sortOrder=desc&limit=10&type=stock')).then(function(r){return r.json();}),
+      fetch(q(BASE+'/quote/list?sortBy=change&sortOrder=asc&limit=10&type=stock')).then(function(r){return r.json();})
+    ]).then(function(res){
+      function merge(arr){return(arr||[]).filter(function(s){return s.close>0&&Math.abs(s.change||0)<50;});}
+      var combined=merge(res[0].stocks).concat(merge(res[1].stocks));
+      var map=new Map();combined.forEach(function(s){map.set(s.stock,s);});
+      setStocks({data:Array.from(map.values()).sort(function(a,b){return(b.change||0)-(a.change||0);}),loading:false,error:null});
+    }).catch(function(e){setStocks({data:null,loading:false,error:'Erro ações: '+e.message});});
+  }
+  function fetchFiis(){
+    return Promise.all([
+      fetch(q(BASE+'/quote/list?sortBy=change&sortOrder=desc&limit=10&type=fii')).then(function(r){return r.json();}),
+      fetch(q(BASE+'/quote/list?sortBy=change&sortOrder=asc&limit=10&type=fii')).then(function(r){return r.json();})
+    ]).then(function(res){
+      function merge(arr){return(arr||[]).filter(function(s){return s.close>0;});}
+      var combined=merge(res[0].stocks).concat(merge(res[1].stocks));
+      var map=new Map();combined.forEach(function(s){map.set(s.stock,s);});
+      setFiis({data:Array.from(map.values()).sort(function(a,b){return(b.change||0)-(a.change||0);}),loading:false,error:null});
+    }).catch(function(e){setFiis({data:null,loading:false,error:'Erro FIIs: '+e.message});});
+  }
+  function fetchCrypto(){
+    return fetch(q(BASE+'/v2/crypto?coin='+CRYPTO_LIST+'&currency=BRL'))
+      .then(function(r){return r.json();})
+      .then(function(d){setCrypto({data:(d.coins||[]).map(function(c){return{coin:c.coin,name:c.coinName,close:c.regularMarketPrice,change:c.regularMarketChangePercent,marketCap:c.marketCap};}),loading:false,error:null});})
+      .catch(function(e){setCrypto({data:null,loading:false,error:'Erro cripto: '+e.message});});
+  }
+  function fetchComms(){
+    return fetch(q(BASE+'/quote/'+COMMS_LIST+'?currency=BRL'))
+      .then(function(r){return r.json();})
+      .then(function(d){setComms({data:(d.results||[]).filter(function(x){return x.regularMarketPrice>0;}).map(function(x){return{stock:x.symbol,name:CNAMES[x.symbol]||x.shortName||x.symbol,close:x.regularMarketPrice,change:x.regularMarketChangePercent,low52:x.fiftyTwoWeekLow,high52:x.fiftyTwoWeekHigh};}),loading:false,error:null});})
+      .catch(function(e){setComms({data:null,loading:false,error:'Erro commodities: '+e.message});});
+  }
+
+  function loadAll(){
+    setSpinning(true);
+    setStocks(function(s){return Object.assign({},s,{loading:true});});
+    setFiis(function(s){return Object.assign({},s,{loading:true});});
+    setCrypto(function(s){return Object.assign({},s,{loading:true});});
+    setComms(function(s){return Object.assign({},s,{loading:true});});
+    Promise.all([fetchStocks(),fetchFiis(),fetchCrypto(),fetchComms()]).then(function(){setLastUpdate(new Date());setSpinning(false);});
+  }
+  useEffect(function(){loadAll();},[]);
+
+  function toggleFav(key,row){setFavorites(function(prev){var n=new Map(prev);n.has(key)?n.delete(key):n.set(key,row);return n;});}
+  var favSet=new Set(favorites.keys());
+
+  // selecionar ticker — categoria determina se é cripto ou não
+  function selTick(ticker,cat){
+    if(selTicker===ticker){setSelTicker(null);setSelCat(null);}
+    else{setSelTicker(ticker);setSelCat(cat);}
+  }
+
+  var gainers=(stocks.data||[]).filter(function(s){return s.change>0;}).slice(0,5);
+  var losers=(stocks.data||[]).filter(function(s){return s.change<0;}).slice(-5).reverse();
+  var topStock=stocks.data&&stocks.data.find(function(s){return s.change>0;});
+  var topFii=fiis.data&&fiis.data.find(function(s){return s.change>0;});
+  var topCrypto=crypto.data&&crypto.data[0];
+  var topComm=comms.data&&comms.data[0];
+
+  function SummaryCard(p){
+    return h('div',{className:'card'},h('div',{className:'card-lbl'},p.label),h('div',{className:'card-val'},p.val||'—'),h('div',{className:'card-chg '+(p.badge||'')},p.change||'—'));
+  }
+
+  function MoverRow(p){
+    var item=p.item,isGain=p.isGain;
+    var key=item.stock||item.coin;
+    var cat=item.cat||'stocks';
+    var isFav=favSet.has(cat+':'+key);
+    var chg=item.change||0;
+    return h('div',{className:'mrow',onClick:function(){selTick(key,cat);}},
+      h('div',{className:'mrow-left'},h('div',{className:'tn'},key),h('div',{className:'ts'},item.name||item.longName||item.shortName||'')),
+      h('div',{className:'mrow-right'},
+        h('div',{className:'mprice'},brl(item.close)),
+        h('div',{className:'mchg '+(isGain?'pos':'neg')},(isGain?'▲':'▼')+' '+Math.abs(chg).toFixed(2)+'%'),
+        h('button',{className:'fav-btn '+(isFav?'on':''),onClick:function(e){e.stopPropagation();toggleFav(cat+':'+key,item);}},'★')
+      )
+    );
+  }
+
+  var stockCols=[
+    {key:'close',label:'Preço',render:function(r){return h('span',{style:{color:'#e8f4ff',fontWeight:600}},brl(r.close));}},
+    {key:'volume',label:'Volume',render:function(r){return r.volume?(r.volume/1e6).toFixed(1)+'M':'—';}},
+  ];
+  var fiiCols=[
+    {key:'close',label:'Cota',render:function(r){return h('span',{style:{color:'#e8f4ff',fontWeight:600}},brl(r.close));}},
+    {key:'dividendYield',label:'DY',render:function(r){return r.dividendYield?r.dividendYield.toFixed(2)+'%':'—';}},
+  ];
+  var cryptoCols=[
+    {key:'close',label:'Preço (BRL)',render:function(r){return h('span',{style:{color:'#e8f4ff',fontWeight:600}},brl(r.close));}},
+    {key:'marketCap',label:'Mkt Cap',render:function(r){return r.marketCap?'$'+(r.marketCap/1e9).toFixed(1)+'B':'—';}},
+  ];
+  var commCols=[
+    {key:'close',label:'Preço',render:function(r){return h('span',{style:{color:'#e8f4ff',fontWeight:600}},brl(r.close));}},
+    {key:'low52',label:'Mín 52s',render:function(r){return brl(r.low52);}},
+    {key:'high52',label:'Máx 52s',render:function(r){return brl(r.high52);}},
+  ];
+
+  function renderTab(){
+    if(tab==='overview')return h('div',null,
+      h('div',{className:'lbl'},'Resumo dos mercados'),
+      h('div',{className:'cards'},
+        h(SummaryCard,{label:'Maior Alta — Ações',val:topStock?brl(topStock.close):'—',change:topStock?'▲ '+topStock.change.toFixed(2)+'% · '+topStock.stock:'—',badge:'pos'}),
+        h(SummaryCard,{label:'Maior Alta — FIIs',val:topFii?brl(topFii.close):'—',change:topFii?'▲ '+topFii.change.toFixed(2)+'% · '+topFii.stock:'—',badge:'pos'}),
+        h(SummaryCard,{label:'Top Cripto',val:topCrypto?brl(topCrypto.close):'—',change:topCrypto?(topCrypto.change>=0?'▲':'▼')+' '+Math.abs(topCrypto.change||0).toFixed(2)+'% · '+topCrypto.coin:'—',badge:topCrypto&&topCrypto.change>=0?'pos':'neg'}),
+        h(SummaryCard,{label:'Top Commodity',val:topComm?brl(topComm.close):'—',change:topComm?(topComm.change>=0?'▲':'▼')+' '+Math.abs(topComm.change||0).toFixed(2)+'% · '+topComm.name:'—',badge:topComm&&topComm.change>=0?'pos':'neg'})
+      ),
+      h('div',{className:'lbl'},'Maiores movimentações do dia'),
+      h('div',{className:'movers'},
+        h('div',{className:'mover-box'},h('div',{className:'mover-title'},h('div',{className:'dot dot-g'}),'Maiores Altas'),
+          stocks.loading?h(Spin):gainers.length?gainers.map(function(item){return h(MoverRow,{key:item.stock,item:Object.assign({},item,{cat:'stocks'}),isGain:true});}):h('div',{className:'hint'},'Sem dados')
+        ),
+        h('div',{className:'mover-box'},h('div',{className:'mover-title'},h('div',{className:'dot dot-r'}),'Maiores Baixas'),
+          stocks.loading?h(Spin):losers.length?losers.map(function(item){return h(MoverRow,{key:item.stock,item:Object.assign({},item,{cat:'stocks'}),isGain:false});}):h('div',{className:'hint'},'Sem dados')
+        )
+      ),
+      selTicker&&selCat==='stocks'&&h(Detail,{key:selTicker,ticker:selTicker,isCrypto:false,onClose:function(){setSelTicker(null);}})
+    );
+
+    if(tab==='explore')return h(ExploreTab,{favSet:favSet,onFav:toggleFav});
+
+    if(tab==='stocks')return h('div',null,
+      h('div',{className:'lbl'},'Ações — B3'),
+      h(MktTable,{title:'Mercado de Ações',badge:'bdg-blue',data:stocks.data,loading:stocks.loading,error:stocks.error,favSet:favSet,onFav:toggleFav,cat:'stocks',cols:stockCols,selTicker:selTicker,onSel:function(t){selTick(t,'stocks');}}),
+      selTicker&&selCat==='stocks'&&h(Detail,{key:selTicker,ticker:selTicker,isCrypto:false,onClose:function(){setSelTicker(null);}})
+    );
+
+    if(tab==='fiis')return h('div',null,
+      h('div',{className:'lbl'},'Fundos Imobiliários — B3'),
+      h(MktTable,{title:'FIIs',badge:'bdg-teal',data:fiis.data,loading:fiis.loading,error:fiis.error,favSet:favSet,onFav:toggleFav,cat:'fiis',cols:fiiCols,selTicker:selTicker,onSel:function(t){selTick(t,'fiis');}}),
+      selTicker&&selCat==='fiis'&&h(Detail,{key:selTicker,ticker:selTicker,isCrypto:false,onClose:function(){setSelTicker(null);}})
+    );
+
+    if(tab==='crypto')return h('div',null,
+      h('div',{className:'lbl'},'Criptomoedas — preços em BRL'),
+      h(MktTable,{title:'Criptomoedas',badge:'bdg-purple',data:crypto.data,loading:crypto.loading,error:crypto.error,favSet:favSet,onFav:toggleFav,cat:'crypto',cols:cryptoCols,selTicker:null,onSel:function(){}})
+    );
+
+    if(tab==='commodities')return h('div',null,
+      h('div',{className:'lbl'},'Commodities — cotações em BRL'),
+      h(MktTable,{title:'Commodities',badge:'bdg-gold',data:comms.data,loading:comms.loading,error:comms.error,favSet:favSet,onFav:toggleFav,cat:'commodities',cols:commCols,selTicker:selTicker,onSel:function(t){selTick(t,'commodities');}}),
+      selTicker&&selCat==='commodities'&&h(Detail,{key:selTicker,ticker:selTicker,isCrypto:false,onClose:function(){setSelTicker(null);}})
+    );
+
+    if(tab==='favorites')return h('div',null,
+      h('div',{className:'lbl'},'Favoritos — '+favorites.size+' ativos salvos'),
+      favorites.size===0
+        ?h('div',{className:'tbl-wrap'},h('div',{className:'fav-empty'},h('div',{className:'fav-ei'},'★'),h('div',{className:'fav-et'},'Você ainda não tem favoritos.',h('br'),'Clique em ★ em qualquer ativo para salvar aqui.')))
+        :h('div',null,
+          h('div',{className:'mover-box'},Array.from(favorites.entries()).map(function(entry){
+            var k=entry[0],row=entry[1];
+            var cat=k.split(':')[0];
+            var catLabel={'stocks':'AÇÃO','fiis':'FII','crypto':'CRIPTO','commodities':'COMM','commodity':'COMM','blue-chip':'AÇÃO','mid-cap':'AÇÃO','small-cap':'AÇÃO','fii':'FII'}[cat]||'';
+            var ticker=row.stock||row.coin||row.ticker;
+            var chg=row.change||0;
+            return h('div',{key:k,className:'mrow',onClick:function(){setSelTicker(selTicker===ticker?null:ticker);setSelCat(cat==='crypto'?'crypto':'stocks');}},
+              h('div',{className:'mrow-left'},h('div',{className:'tn'},ticker),h('div',{className:'ts'},catLabel+' · '+(row.name||row.longName||''))),
+              h('div',{className:'mrow-right'},
+                h('div',{className:'mprice'},brl(row.close)),
+                h('div',{className:'mchg '+(chg>=0?'pos':'neg')},(chg>=0?'▲':'▼')+' '+Math.abs(chg).toFixed(2)+'%'),
+                h('button',{className:'fav-btn on',onClick:function(e){e.stopPropagation();toggleFav(k,row);}},'★')
+              )
+            );
+          })),
+          selTicker&&h(Detail,{key:selTicker,ticker:selTicker,isCrypto:selCat==='crypto',onClose:function(){setSelTicker(null);}})
+        )
+    );
+    return null;
+  }
+
+  return h('div',null,
+    h('div',{className:'hdr'},
+      h('div',{className:'hdr-top'},
+        h('div',{className:'logo'},
+          h('div',{className:'logo-m'},'M'),
+          h('div',null,
+            h('div',{className:'logo-n'},'Mercado',h('span',null,'Hub')),
+            h('div',{className:'meta'},lastUpdate?'atualizado '+lastUpdate.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'aguardando dados...')
+          )
+        ),
+        h('button',{className:'btn',onClick:loadAll},spinning?'⟳ Atualizando...':'↺ Atualizar')
+      ),
+      h('div',{className:'tabs'},TABS.map(function(t){
+        var isOn=tab===t.id,isFav=t.id==='favorites';
+        return h('div',{key:t.id,className:'tab '+(isOn?'on':'')+' '+(isFav?'fav':''),onClick:function(){setTab(t.id);setSelTicker(null);}},
+          h('span',{style:{marginRight:4,opacity:.7}},t.icon),t.label,
+          isFav&&favorites.size>0&&h('span',{className:'fav-count'},favorites.size)
+        );
+      }))
+    ),
+    h('div',{className:'page'},renderTab())
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
