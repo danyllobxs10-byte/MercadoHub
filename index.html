@@ -529,6 +529,75 @@ function WatchRow(p){
   );
 }
 
+// ── Ranking do pregão (todas as ações num dia) ───────────────
+var DIAS=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+function weekday(s){return DIAS[new Date(s+'T12:00:00Z').getUTCDay()];}
+function shiftWeekday(s,dir){var d=s;do{d=addDays(d,dir);}while(['sábado','domingo'].indexOf(weekday(d))>=0);return d;}
+var RK_ORD=[{id:'alta',l:'Maiores altas'},{id:'baixa',l:'Maiores baixas'},{id:'fin',l:'Volume financeiro'},{id:'tk',l:'Ticker A–Z'}];
+var UNIV=[{id:'ibov',l:'Ibovespa'},{id:'minhas',l:'Minhas ações'},{id:'todas',l:'Todas'}];
+function RankingTab(p){
+  var s1=useState(null),req=s1[0],setReq=s1[1];
+  var s2=useState(10),topN=s2[0],setTopN=s2[1];
+  var s3=useState('ibov'),univ=s3[0],setUniv=s3[1];
+  var s4=useState('alta'),ord=s4[0],setOrd=s4[1];
+  var extra=p.mine.slice().sort().join(',');
+  var st=useData(function(){return api.get('/api/ranking?'+(req?'d='+req+'&':'')+'extra='+encodeURIComponent(extra));},[req,extra]);
+  var hoje=today();
+  var data=st.data,used=data&&data.data;
+  function go(d){if(!d||d>=hoje)setReq(null);else setReq(d);}
+  var nav=h('div',{className:'row',style:{gap:8}},
+    h('button',{className:'btn',disabled:!used,onClick:function(){go(shiftWeekday(used,-1));}},'◀ Pregão anterior'),
+    h('input',{className:'inp',type:'date',value:req||used||'',max:hoje,onChange:function(e){go(e.target.value);},style:{padding:'6px 8px',fontSize:13}}),
+    h('button',{className:'btn',disabled:!used||!req,onClick:function(){go(shiftWeekday(req>used?req:used,1));}},'Pregão seguinte ▶'),
+    h('button',{className:'btn'+(!req?' on':''),onClick:function(){setReq(null);}},'Último pregão')
+  );
+  var head=h('div',{className:'card'},
+    h('div',{className:'row',style:{justifyContent:'space-between'}},
+      h('div',null,h('div',{className:'tk'},'Ranking do pregão'),h('div',{className:'note',style:{marginTop:4}},'Maiores altas e baixas entre as ações do Ibovespa e as suas, no dia escolhido.')),
+      nav),
+    h('div',{className:'row',style:{marginTop:12,justifyContent:'space-between'}},
+      h('div',{className:'seg'},UNIV.map(function(u){return h('button',{key:u.id,className:'btn'+(univ===u.id?' on':''),onClick:function(){setUniv(u.id);}},u.l);})),
+      h('div',{className:'seg'},[5,10,20].map(function(k){return h('button',{key:k,className:'btn'+(topN===k?' on':''),onClick:function(){setTopN(k);}},'Top '+k);}))
+    )
+  );
+  if(st.loading)return h('div',{className:'stack'},head,h('div',{className:'msg'},'Buscando o pregão de cerca de 80 ações... pode levar alguns segundos.'));
+  if(st.error)return h('div',{className:'stack'},head,h('div',{className:'card'},h('div',{className:'err'},'Não foi possível montar o ranking: '+st.error)));
+  var mineSet={};p.mine.forEach(function(t){mineSet[t]=1;});
+  var rows=data.rows.filter(function(r){return univ==='ibov'?r.ibov:univ==='minhas'?mineSet[r.t]:true;});
+  var n=rows.length,ups=rows.filter(function(r){return r.chg>0;}).length,downs=rows.filter(function(r){return r.chg<0;}).length;
+  var byUp=rows.slice().sort(function(a,b){return b.chg-a.chg;}),byDown=rows.slice().sort(function(a,b){return a.chg-b.chg;});
+  var best=byUp[0],worst=byDown[0],top=Math.min(topN,n);
+  var sorted=ord==='alta'?byUp:ord==='baixa'?byDown:ord==='fin'?rows.slice().sort(function(a,b){return(b.fin||0)-(a.fin||0);}):rows.slice().sort(function(a,b){return a.t<b.t?-1:1;});
+  function tkCell(r){return h('td',null,h('button',{className:'link',onClick:function(){p.onOpen(r.t);}},r.t),mineSet[r.t]?h('span',{title:'Na sua lista ou carteira',style:{color:'var(--gold)',marginLeft:6}},'●'):null);}
+  function mini(title,list){
+    return h('div',{className:'card'},h('h3',null,title),
+      list.length?h('div',{className:'tbl-wrap',style:{border:'none'}},h('table',null,
+        h('thead',null,h('tr',null,['Ativo','Fechamento','Variação','Vol. financeiro'].map(function(x){return h('th',{key:x},x);}))),
+        h('tbody',null,list.map(function(r){return h('tr',{key:r.t},tkCell(r),h('td',null,nf(r.c)),h('td',{className:cls(r.chg),style:{fontWeight:600}},pct(r.chg)),h('td',null,'R$ '+big(r.fin)));}))
+      )):h('div',{className:'msg'},'Nenhuma ação.'));
+  }
+  return h('div',{className:'stack'},head,
+    h('div',{className:'grid4'},
+      h(Stat,{l:'Pregão',v:brDate(used),s:weekday(used)+(used===hoje?' · parcial, em andamento':'')+(req&&req!==used?' · '+brDate(req)+' sem pregão':''),sc:'dim'}),
+      h(Stat,{l:'Ibovespa no dia',v:data.ibov?pct(data.ibov.chg):'—',s:data.ibov?nf(data.ibov.c,0)+' pontos':null,sc:data.ibov?cls(data.ibov.chg):'dim'}),
+      h(Stat,{l:'Subiram / caíram',v:ups+' / '+downs,s:n+' ações no ranking'}),
+      h(Stat,{l:'Extremos do dia',v:best?best.t+' '+pct(best.chg,1):'—',s:worst?worst.t+' '+pct(worst.chg,1):null,sc:'neg'})
+    ),
+    h('div',{className:'grid2'},mini(top+' maiores altas',byUp.slice(0,top).filter(function(r){return r.chg>0;})),mini(top+' maiores baixas',byDown.slice(0,top).filter(function(r){return r.chg<0;}))),
+    h('div',null,
+      h('div',{className:'row',style:{justifyContent:'space-between',margin:'4px 0 10px'}},
+        h('h3',{className:'dim',style:{fontSize:12,textTransform:'uppercase',letterSpacing:'.07em'}},'Todas as ações ('+n+')'),
+        h('div',{className:'seg'},RK_ORD.map(function(o){return h('button',{key:o.id,className:'btn'+(ord===o.id?' on':''),onClick:function(){setOrd(o.id);}},o.l);}))
+      ),
+      h('div',{className:'tbl-wrap'},h('table',null,
+        h('thead',null,h('tr',null,['Ativo','Nome','Fech. anterior','Fechamento','Variação','Volume (ações)','Vol. financeiro'].map(function(c){return h('th',{key:c},c);}))),
+        h('tbody',null,sorted.map(function(r){return h('tr',{key:r.t},tkCell(r),h('td',{className:'dim',style:{fontFamily:'inherit',fontSize:12}},(r.nome||'').slice(0,22)),h('td',null,nf(r.pv)),h('td',{style:{color:'var(--hi)'}},nf(r.c)),h('td',{className:cls(r.chg),style:{fontWeight:600}},pct(r.chg)),h('td',null,big(r.v)),h('td',null,'R$ '+big(r.fin)));}))
+      ))
+    ),
+    h('div',{className:'note'},'Universo: carteira teórica do Ibovespa de set–dez/2026 (76 ações) mais as ações da sua lista e da sua carteira (●). Variação = fechamento sobre o fechamento do pregão anterior; no pregão em andamento, usa a última cotação. Em datas-ex de dividendos a queda inclui o provento.'+(data.falhas.length?' Sem dados neste dia: '+data.falhas.join(', ')+'.':''))
+  );
+}
+
 // ── App ──────────────────────────────────────────────────────
 function MarketStrip(){
   var ib=useData(function(){return api.quote('^BVSP','1mo');},[]);
@@ -536,7 +605,7 @@ function MarketStrip(){
   function item(l,st,fmt){var d=st.data;return h('div',{className:'strip-i'},h('span',{className:'strip-l'},l),h('span',{className:'strip-v'},d?fmt(d.price)+' ':'—',d&&h('span',{className:cls(dayChange(d))},pct(dayChange(d)))));}
   return h('div',{className:'strip'},item('Ibovespa',ib,function(v){return nf(v,0);}),item('Dólar',fx,function(v){return'R$ '+nf(v,3);}));
 }
-var TABS=[{id:'ativo',l:'Ativo'},{id:'altas',l:'Altas e baixas'},{id:'carteira',l:'Carteira'},{id:'acomp',l:'Acompanhamento'}];
+var TABS=[{id:'ativo',l:'Ativo'},{id:'altas',l:'Altas e baixas'},{id:'ranking',l:'Ranking do pregão'},{id:'carteira',l:'Carteira'},{id:'acomp',l:'Acompanhamento'}];
 function App(){
   var s1=useState(function(){return load(K_TAB,'acomp');}),tab=s1[0],setTab=s1[1];
   var s2=useState(function(){return load(K_TRADES,[]);}),trades=s2[0],setTrades=s2[1];
@@ -549,7 +618,9 @@ function App(){
   function open(t){setTicker(t);setTab('ativo');window.scrollTo(0,0);}
   function addWatch(t){setWatch(function(w){return w.some(function(x){return x.t===t;})?w:w.concat([{t:t,alvo:null,alerta:null}]);});}
   function altas(t){setTicker(t);setTab('altas');window.scrollTo(0,0);}
-  var view=tab==='altas'?h(AltasTab,{ticker:ticker,onTicker:setTicker,watch:watch,onOpen:open})
+  var mine=Object.keys(watch.map(function(w){return w.t;}).concat(trades.map(function(x){return x.t;})).reduce(function(o,t){o[t]=1;return o;},{}));
+  var view=tab==='ranking'?h(RankingTab,{mine:mine,onOpen:open})
+    :tab==='altas'?h(AltasTab,{ticker:ticker,onTicker:setTicker,watch:watch,onOpen:open})
     :tab==='ativo'?h(AtivoTab,{ticker:ticker,onTicker:setTicker,watch:watch,onWatch:addWatch,onAltas:altas,onTrade:function(t,px){setDraft({t:t,p:px,k:Date.now()});setTab('carteira');}})
     :tab==='carteira'?h(CarteiraTab,{trades:trades,watch:watch,draft:draft,onOpen:open,onAdd:function(tr){setTrades(function(a){return a.concat([tr]);});},onDel:function(id){setTrades(function(a){return a.filter(function(x){return x.id!==id;});});},onImport:function(j){setTrades(j.lancamentos);if(Array.isArray(j.acompanhamento))setWatch(j.acompanhamento);}})
     :h(WatchTab,{watch:watch,onOpen:open,onWatch:addWatch,onReset:function(){setWatch(PLANO);},onDel:function(t){setWatch(function(w){return w.filter(function(x){return x.t!==t;});});},onEdit:function(t,k,v){setWatch(function(w){return w.map(function(x){if(x.t!==t)return x;var n=Object.assign({},x);n[k]=v;return n;});});}});
