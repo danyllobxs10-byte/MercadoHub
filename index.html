@@ -35,6 +35,7 @@ main{padding:20px 0 60px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
 .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .stack>*+*{margin-top:14px}
+.grid2>*,.grid4>*{min-width:0}
 .inp{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-size:14px;color:var(--hi);min-width:0}
 .inp:focus{outline:none;border-color:var(--gold)}
 .inp::placeholder{text-transform:none;color:var(--faint)}
@@ -216,7 +217,6 @@ function AtivoView(p){
   if(daily.error)return h('div',{className:'card'},h('div',{className:'err'},'Não foi possível carregar '+t+': '+daily.error),h('div',{className:'note'},'Confira o código do ativo. Para ações da B3 use o código sem ".SA" (ex.: PETR4).'));
   var d=daily.data,s=d.series,last=s[s.length-1],chg=dayChange(d),f=fund.data,g=graham(f);
   var cs=chart.data?chart.data.series:[],rangeChg=cs.length>1?(cs[cs.length-1].c/cs[0].c-1)*100:null;
-  var tail=s.slice(-10).reverse();
   return h('div',{className:'stack'},
     h('div',{className:'card'},
       h('div',{className:'row',style:{justifyContent:'space-between',alignItems:'flex-start'}},
@@ -276,14 +276,92 @@ function AtivoView(p){
         )
       )
     ),
-    h('div',null,h('h3',{className:'dim',style:{fontSize:12,textTransform:'uppercase',letterSpacing:'.07em',margin:'4px 0 10px'}},'Últimos pregões'),
-      h('div',{className:'tbl-wrap'},h('table',null,
-        h('thead',null,h('tr',null,['Data','Abertura','Máxima','Mínima','Fechamento','Variação','Volume'].map(function(c){return h('th',{key:c},c);}))),
-        h('tbody',null,tail.map(function(b,i){var prev=s[s.length-2-i];var v=prev?(b.c/prev.c-1)*100:null;
-          return h('tr',{key:b.t},h('td',null,dt(b.t)),h('td',null,nf(b.o)),h('td',null,nf(b.h)),h('td',null,nf(b.l)),h('td',{style:{color:'var(--hi)'}},nf(b.c)),h('td',{className:cls(v)},pct(v)),h('td',null,big(b.v)));}))
-      ))
-    ),
+    h(PregoesView,{t:t}),
     h('div',{className:'note'},'Fontes: cotações do Yahoo Finance; indicadores do Fundamentus (último balanço processado). Dados para acompanhamento, não para negociação em tempo real.')
+  );
+}
+
+// ── Pregões com recorte de datas ─────────────────────────────
+var PRESETS=[{l:'1M',d:30},{l:'3M',d:91},{l:'6M',d:182},{l:'1A',d:365},{l:'2A',d:730},{l:'5A',d:1830}];
+var ORDENS=[{id:'data',l:'Mais recentes'},{id:'alta',l:'Maiores altas'},{id:'baixa',l:'Maiores baixas'},{id:'vol',l:'Maior volume'},{id:'amp',l:'Maior amplitude'}];
+function ymd(ts){return new Date((ts-3*3600)*1000).toISOString().slice(0,10);}
+function addDays(s,n){var d=new Date(s+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
+function brDate(s){return s?s.split('-').reverse().join('/'):'—';}
+function PregoesView(p){
+  var t=p.t;
+  var st=useData(function(){return api.quote(t,'5y','1d');},[t]);
+  var s1=useState('3M'),preset=s1[0],setPreset=s1[1];
+  var s2=useState(null),de=s2[0],setDe=s2[1];
+  var s3=useState(null),ate=s3[0],setAte=s3[1];
+  var s4=useState('data'),ord=s4[0],setOrd=s4[1];
+  var s5=useState(20),lim=s5[0],setLim=s5[1];
+  var bars=useMemo(function(){
+    if(!st.data||!st.data.series)return[];
+    var s=st.data.series,out=[];
+    for(var i=1;i<s.length;i++){var pv=s[i-1].c,b=s[i];
+      out.push({t:b.t,d:ymd(b.t),o:b.o,h:b.h,l:b.l,c:b.c,v:b.v,chg:(b.c/pv-1)*100,amp:b.h!=null&&b.l!=null?(b.h-b.l)/pv*100:null,pv:pv});}
+    return out;
+  },[st.data]);
+  if(st.loading)return h('div',{className:'card'},h('h3',null,'Pregões no período'),h('div',{className:'msg'},'carregando histórico diário...'));
+  if(st.error||!bars.length)return h('div',{className:'card'},h('h3',null,'Pregões no período'),h('div',{className:'err'},'Histórico diário indisponível'+(st.error?': '+st.error:'.')));
+  var first=bars[0].d,last=bars[bars.length-1].d;
+  var pr=PRESETS.filter(function(x){return x.l===preset;})[0];
+  var A=pr?last:(ate||last),D=pr?addDays(last,-pr.d):(de||addDays(last,-91));
+  if(D>A){var tmp=D;D=A;A=tmp;}
+  var sel=bars.filter(function(b){return b.d>=D&&b.d<=A;});
+  function pick(x){setPreset(x.l);setLim(20);}
+  function setRange(k){return function(e){var v=e.target.value;if(!v)return;setPreset(null);setLim(20);if(k==='de'){setDe(v);setAte(A);}else{setAte(v);setDe(D);}};}
+  var n=sel.length,ups=0,downs=0,volSum=0,best=null,worst=null;
+  sel.forEach(function(b){if(b.chg>0)ups++;else if(b.chg<0)downs++;volSum+=b.v||0;if(!best||b.chg>best.chg)best=b;if(!worst||b.chg<worst.chg)worst=b;});
+  var periodo=n?(sel[n-1].c/sel[0].pv-1)*100:null;
+  var byUp=sel.slice().sort(function(a,b){return b.chg-a.chg;}),byDown=sel.slice().sort(function(a,b){return a.chg-b.chg;});
+  var sorted=ord==='alta'?byUp:ord==='baixa'?byDown:ord==='vol'?sel.slice().sort(function(a,b){return(b.v||0)-(a.v||0);}):ord==='amp'?sel.slice().sort(function(a,b){return(b.amp||0)-(a.amp||0);}):sel.slice().reverse();
+  function csv(){
+    var f=function(v,d){return v==null?'':Number(v).toFixed(d).replace('.',',');};
+    var rows=[['Data','Abertura','Máxima','Mínima','Fechamento','Variação %','Amplitude %','Volume'].join(';')].concat(sel.slice().reverse().map(function(b){return[brDate(b.d),f(b.o,2),f(b.h,2),f(b.l,2),f(b.c,2),f(b.chg,2),f(b.amp,2),b.v==null?'':b.v].join(';');}));
+    var blob=new Blob(['﻿'+rows.join('\r\n')],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=t+'-pregoes-'+D+'-a-'+A+'.csv';document.body.appendChild(a);a.click();a.remove();
+  }
+  function mini(title,list,c){
+    return h('div',{className:'card'},h('h3',null,title),
+      list.length?h('div',{className:'tbl-wrap',style:{border:'none'}},h('table',null,
+        h('thead',null,h('tr',null,['Data','Fechamento','Variação','Volume'].map(function(x){return h('th',{key:x},x);}))),
+        h('tbody',null,list.map(function(b){return h('tr',{key:b.t},h('td',null,brDate(b.d)),h('td',null,nf(b.c)),h('td',{className:cls(b.chg),style:{fontWeight:600}},pct(b.chg)),h('td',null,big(b.v)));}))
+      )):h('div',{className:'msg'},'Sem pregões no recorte.'));
+  }
+  var top=Math.min(5,n);
+  return h('div',{className:'stack'},
+    h('div',{className:'card'},
+      h('h3',null,'Pregões no período'),
+      h('div',{className:'row',style:{justifyContent:'space-between'}},
+        h('div',{className:'seg'},PRESETS.map(function(x){return h('button',{key:x.l,className:'btn'+(preset===x.l?' on':''),onClick:function(){pick(x);}},x.l);})),
+        h('div',{className:'row',style:{gap:8}},
+          h('label',{className:'note'},'De '),h('input',{className:'inp',type:'date',value:D,min:first,max:last,onChange:setRange('de'),style:{padding:'6px 8px',fontSize:13}}),
+          h('label',{className:'note'},'até '),h('input',{className:'inp',type:'date',value:A,min:first,max:last,onChange:setRange('ate'),style:{padding:'6px 8px',fontSize:13}}),
+          h('button',{className:'btn',onClick:csv,disabled:!n},'Exportar CSV')
+        )
+      ),
+      h('div',{className:'grid4',style:{marginTop:14}},
+        h(Stat,{l:'Variação no recorte',v:pct(periodo),s:n?brDate(sel[0].d)+' a '+brDate(sel[n-1].d):'—',sc:cls(periodo)}),
+        h(Stat,{l:'Pregões',v:String(n),s:n?ups+' de alta · '+downs+' de baixa':null}),
+        h(Stat,{l:'Maior alta',v:best?pct(best.chg):'—',s:best?brDate(best.d)+' · fechou '+brl(best.c):null,sc:'pos'}),
+        h(Stat,{l:'Maior baixa',v:worst?pct(worst.chg):'—',s:worst?brDate(worst.d)+' · fechou '+brl(worst.c):null,sc:'neg'})
+      )
+    ),
+    h('div',{className:'grid2'},mini(top+' maiores altas',byUp.slice(0,top).filter(function(b){return b.chg>0;})),mini(top+' maiores baixas',byDown.slice(0,top).filter(function(b){return b.chg<0;}))),
+    h('div',null,
+      h('div',{className:'row',style:{justifyContent:'space-between',margin:'4px 0 10px'}},
+        h('h3',{className:'dim',style:{fontSize:12,textTransform:'uppercase',letterSpacing:'.07em'}},'Todos os pregões do recorte'),
+        h('div',{className:'seg'},ORDENS.map(function(o){return h('button',{key:o.id,className:'btn'+(ord===o.id?' on':''),onClick:function(){setOrd(o.id);setLim(20);}},o.l);}))
+      ),
+      h('div',{className:'tbl-wrap'},h('table',null,
+        h('thead',null,h('tr',null,['Data','Abertura','Máxima','Mínima','Fechamento','Variação','Amplitude','Volume'].map(function(c){return h('th',{key:c},c);}))),
+        h('tbody',null,sorted.slice(0,lim).map(function(b){
+          return h('tr',{key:b.t},h('td',null,brDate(b.d)),h('td',null,nf(b.o)),h('td',null,nf(b.h)),h('td',null,nf(b.l)),h('td',{style:{color:'var(--hi)'}},nf(b.c)),h('td',{className:cls(b.chg)},pct(b.chg)),h('td',null,b.amp!=null?nf(b.amp)+'%':'—'),h('td',null,big(b.v)));}))
+      )),
+      sorted.length>lim&&h('div',{style:{textAlign:'center',marginTop:10}},h('button',{className:'btn',onClick:function(){setLim(lim+40);}},'Mostrar mais ('+(sorted.length-lim)+' restantes)'))
+    ),
+    h('div',{className:'note'},'Variação = fechamento sobre o fechamento do pregão anterior. Amplitude = (máxima − mínima) sobre o fechamento anterior. Em datas-ex de dividendos a queda do dia inclui o provento pago. Histórico diário disponível: '+brDate(first)+' a '+brDate(last)+'.')
   );
 }
 
