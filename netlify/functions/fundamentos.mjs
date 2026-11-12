@@ -68,7 +68,7 @@ function reply(status, body, cacheSeconds) {
   const headers = { "Content-Type": "application/json; charset=utf-8", "Access-Control-Allow-Origin": "*" };
   if (cacheSeconds) {
     headers["Cache-Control"] = "public, max-age=300";
-    headers["Netlify-CDN-Cache-Control"] = `public, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 4}`;
+    headers["CDN-Cache-Control"] = `public, s-maxage=${cacheSeconds}, stale-while-revalidate=${cacheSeconds * 4}`;
   }
   return new Response(JSON.stringify(body), { status, headers });
 }
